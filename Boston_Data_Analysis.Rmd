@@ -1,0 +1,88 @@
+---
+title: "Boston_Data_Analysis"
+author: "Sneha Vasanth"
+date: "February 9, 2017"
+output: html_document
+---
+```{r}
+load("BostonData.Rdat")
+```
+
+Research questions: we wish to examine the effects of NOx, distance to employment, and education quality (as assessed through the student-teacher ratio) on home value.
+
+We will test them individually and then adjust for all factors.
+0) Plot a scatterplot matrix of the data and describe what you see. Are any variables tightly related?
+
+```{r}
+plot(boston)
+```
+
+From the graph, the variables NO concentration and distance to work seem to be tightly related. As distance to work increases, NO concentration decreases.
+
+1) Fit single linear regressions with home.value as the outcome and each of the predictors:
+
+What are the associations of NOx, distance to employment, and education with home value? 
+
+
+```{r}
+mod1 <- lm(home.value ~ NO.concentration, data = boston)
+summary(mod1)
+```
+
+With every 1 unit increase in NO concentration, the home value goes down by 33 units. Here the NO concentration is much smaller and hence we can reduce the scale by dividing both values by 10.
+
+```{r}
+summary(boston$NO.concentration)
+```
+
+Thus, the relationship then changes to - For every 0.1 unit increase in NO concentration, the home values go down by 3.3 units.
+
+
+```{r}
+mod2 <- lm(home.value ~ distance.to.work, data = boston)
+summary(mod2)
+```
+
+With every 1 unit increase in distance to work, the home value increases by 1.09 units.
+
+
+```{r}
+mod3 <- lm(home.value ~ student.teacher.ratio, data = boston)
+summary(mod3)
+```
+
+With every 1 unit increase in student teacher ratio, home value goes down by 2.157 units.
+
+
+2) Compare the adjusted r2 values for each model. Which predictor explains the data the best?
+
+The adjusted r2 value is the highest for student-teacher ratio vs the home value graph. Hence student teacher ration is the best predictor of home value. 
+
+
+3) Run a multiple linear regression with home.value as the outcome and the other three variables as the predictors:
+
+```{r}
+mod.full <- lm(home.value ~ distance.to.work + NO.concentration +
+student.teacher.ratio, data = boston)
+summary(mod.full)
+```
+
+Again interpret the associations. Do you see anything surprising (hint: maybe distance to work)? What could explain this discrepancy? Remember you are now adjusting each predictor for the other values.
+
+The distance to work value flips it's sign when plotted along with other indicators. This indicates that as distance to work increases by 1 unit, the home value goes down by 1.28 units when the NO concentration and student teacher ratio remain a constant.
+
+This discrepancy can be due to home value being higher with closer distance to work due to convinience although the NO concentration is high. People might perfer staying closer to avoid traffic. 
+
+4) Compare the adjusted r2 value for this multivariate model to the single linear regression values, which model fits the data the best?
+
+The adjusted r2 value for multivariate model is 0.4, which is much higher than the adjusted r2 value obtained from single linear regression values. Hence multivariate model fits the data the best.
+
+5) Predict and find the prediction interval the median home value of a home 3 km from work, with a NOx concentration of 0.35, and a student-teacher ratio of 10.
+
+```{r}
+predict(mod.full, newdata=data.frame("distance.to.work" = 3,
+"NO.concentration" = 0.35, "student.teacher.ratio" = 10),
+interval="prediction")
+```
+
+We can say with 95% confidence that the median home value of a home 3 km from work, with a NOx concentration of 0.35, and a student-teacher ratio ranges between 34.22 units and 63.92 units. 
