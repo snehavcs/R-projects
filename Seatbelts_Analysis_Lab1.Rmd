@@ -1,0 +1,211 @@
+---
+title: "Seatbelt Analysis"
+author: "Sneha Vasanth"
+date: "January 10, 2017"
+output: html_document
+---
+#1.Data Cleaning
+```{r}
+seatbelts <- read.csv("seatbelts.csv")
+class(seatbelts)
+dim(seatbelts)
+```
+
+How many cases are in the observed data? 
+Answer - 192, since there are 192 rows in the dataframe
+```{r}
+colnames(seatbelts)
+```
+
+Summary
+```{r}
+summary(seatbelts)
+```
+
+
+what variables are observed for each month?
+Answer - numeric
+```{r}
+attach(seatbelts)
+year.month
+```
+
+#2.Computing Averages
+
+We can find the mean age using the mean() function. What is the result? -  122.8021
+```{r}
+mean(seatbelts[,"DriversKilled"])
+```
+
+But is this the mean by year? Or over all years? - It is the mean over all years
+
+Let's subset the data and see:
+```{r}
+mean(seatbelts[seatbelts[,"year"]>=1969 &
+seatbelts[,"year"]<1970,"DriversKilled"])
+```
+
+It's not the same as mean by years
+Mean by year is given by 
+```{r}
+by(seatbelts[,"DriversKilled"], seatbelts[,"year"], mean)
+```
+
+What was the average number of fatalities in 1970? 1978?
+```{r}
+mean(seatbelts[seatbelts[,"year"]==1970,"DriversKilled"])
+```
+
+Answer - In 1970, average number of fatalities was 122.4167
+
+```{r}
+mean(seatbelts[seatbelts[,"year"]==1978,"DriversKilled"])
+```
+
+Answer - In 1978, average number of fatalities was 125.5833
+
+What was the average number of rear seat fatalities in 1972? 1980?
+
+The average number of rear seat fatalities in 1972 was 440.25
+```{r}
+mean(seatbelts[seatbelts[,"year"]==1972,"rear"])
+```
+
+The average number of rear seat fatalities in 1980 was 380.8333
+```{r}
+mean(seatbelts[seatbelts[,"year"]==1980,"rear"])
+```
+
+#3.Exploring Relationships  
+
+Plot the relationship between drivers killed or seriously injured and petrol price and kilometers traveled. 
+```{r}
+plot(seatbelts[,"kms"], seatbelts[,"drivers"])
+```
+
+
+What do you see?
+
+Drivers killed vs the the distance travelled:
+
+There seems to be a negative correlation between the kms travelled and the number of drivers injured.
+
+```{r}
+plot(seatbelts[,"kms"], seatbelts[,"DriversKilled"])
+mod1 <- lm(seatbelts[,"DriversKilled"]~seatbelts[,"kms"])
+abline(mod1, lwd=2)
+```
+```{r}
+cor(seatbelts[,"kms"], seatbelts[,"DriversKilled"])
+```
+
+Drivers killed vs the petrol price
+
+```{r}
+plot(seatbelts[,"PetrolPrice"], seatbelts[,"DriversKilled"])
+mod1 <- lm(seatbelts[,"DriversKilled"] ~ seatbelts[,"PetrolPrice"])
+abline(mod1, lwd = 2)
+```
+
+
+What hypotheses might you make after seeing these relationships?
+
+The evidence suggests that, higher the kms travelled in the car, less likely is the injury/death, i.e. there is a negative association. This can be an indication that inexperienced drivers are more prone to injury/death.
+
+Similarly, there is a negative association between price of petrol and distance travelled.  
+
+#4.Exploring Relationships II
+
+Consider a research question that asks about the implementation of the seatbelt law.
+
+Did it have an effect? Did it reduce fatalities?
+```{r}
+plot(seatbelts[,"year"], seatbelts[,"DriversKilled"])
+```
+
+
+What descriptive and visual tools might we use to explore this? 
+Examine the mean fatalities before and after the implementation of the law. Remember to subset your data (hint: there are two variables you can use to do this to do this).
+
+Descriptive analysis
+
+We can identify the mean value of drivers killed by subsetting the data before and after the law was implemented.
+```{r}
+mean(seatbelts[seatbelts[,"law"]==0,"DriversKilled"])
+mean(seatbelts[seatbelts[,"law"]==1,"DriversKilled"])
+```
+
+We can also use dplyr library to group by law and identify the mean value of drivers killed.
+```{r}
+library(dplyr)
+seatbelts %>%
+  group_by(law) %>%
+   summarise(mean(DriversKilled))
+```
+The mean value of the number of drivers killed has decreased about 25 points after implementation of the law.
+
+Produce a figure to get some visual intuition about the response to the seatbelt law. 
+Was it a gradual decline? Sharp?
+```{r}
+plot(seatbelts$year , seatbelts$drivers , col= ifelse(seatbelts$law==0, "red", "blue"))
+
+plot(seatbelts$year.month, seatbelts$DriversKilled , type = 'l',xaxt='n')
+axis(side = 1, at = seatbelts$year, labels = TRUE)
+abline(v = as.numeric(1983.167))
+```
+
+Mean value of drivers killed per year is plotted against every distinct year to identify the change in the number of drivers killed before and after the law.
+
+```{r}
+mean.yearly <- by(seatbelts[,"DriversKilled"], seatbelts[,"year"], mean)
+years.factor <- factor(seatbelts$year)
+level1 <- levels(years.factor)
+l1 <- as.numeric(level1)
+plot(l1, mean.yearly,xaxt='n')
+axis(side = 1, at = seatbelts$year, labels = TRUE)
+abline(v = as.numeric(1983.167))
+```
+
+
+As per the graph, there seems to be a decline(mean reduces from 125 to 100) in the number of drivers killed immediately after the seatbelt law was implemented, but the number increases over the next few years and gets back to the previous rate. So, overall the decline is gradual.
+
+Does it appear large in magnitude or small?
+It appears to be small in magnitude since there is a gradual decline in the number of drivers killed considering the mean value before and after the law was passed.
+
+We can also use ggplot to visualize this
+```{r}
+library(ggplot2)
+ggplot(seatbelts, aes(x=year.month, y=DriversKilled,col=law))+geom_line()
+```
+
+5. Extra Credit Question: Be creative! What additional research questions might you
+want to explore in this data? See what you can discover about the relationships that exist between variables in this dataset. Produce a table or figure to communicate your findings and describe in words what you found and why it's interesting.
+
+Van drivers killed vs the the distance travelled:
+
+```{r}
+plot(seatbelts[,"kms"], seatbelts[,"VanKilled"])
+mod1 <- lm(seatbelts[,"VanKilled"]~seatbelts[,"kms"])
+abline(mod1, lwd=2)
+```
+
+Van drivers killed vs the petrol price
+
+```{r}
+plot(seatbelts[,"PetrolPrice"], seatbelts[,"VanKilled"])
+mod1 <- lm(seatbelts[,"VanKilled"] ~ seatbelts[,"PetrolPrice"])
+abline(mod1, lwd = 2)
+```
+There seems to be a negative correlation between the kms travelled and the number of van drivers killed. Similarly, there is a negative association between price of petrol and van drivers killed.
+
+Petrol price vs year
+
+```{r}
+plot(seatbelts[,"PetrolPrice"], seatbelts[,"year"])
+mod1 <- lm(seatbelts[,"year"] ~ seatbelts[,"PetrolPrice"])
+abline(mod1, lwd = 2)
+```
+
+There is an increase in petrol price every year.
+
+
