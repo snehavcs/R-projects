@@ -1,0 +1,180 @@
+---
+title: "NYC_Flights"
+author: "Sneha Vasanth"
+date: "January 29, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+#install.packages("nycflights13")
+library(nycflights13)
+data(flights)
+```
+
+
+1. Let's explore flights from NYC to Seattle. Use the flights dataset to answer the following questions.
+
+a) (2 pt) How many flights were there to and from NYC in 2013?
+```{r}
+class(flights)
+library(dplyr)
+dim(flights)
+```
+
+There were 336,776 flights from NYC in 2013
+
+```{r}
+library(dplyr)
+flights %>%
+  filter(dest %in% c("JFK","EWR","LGA")) %>%
+  summarise(count_flights = n())
+```
+
+There was one flight for which origin & destination was NYC.
+
+b) (2 pt) How many flights were there from NYC airports to Seattle (SEA) in 2013?
+```{r}
+flights %>%
+  filter(year == 2013 & dest == "SEA") %>%
+  summarise(count_num = n())
+```
+
+There were 3923 flights from NYC to Seattle in 2013.
+
+c) (2 pt) How many airlines fly from NYC to Seattle? Hint: look at the function unique()
+```{r}
+flights %>%
+  filter(dest == "SEA") %>%
+  summarise(count_carrier = length(unique(carrier)))
+```
+
+There are 5 airlines that fly from NYC to Seattle.
+
+d) (2 pt) What is the average arrival delay for flights from NYC to Seattle? Hint: if there are missing values in the vector you want the mean of, you have to remove them. Try the following:
+```{r}
+flights %>%
+  filter(dest == "SEA") %>%
+  summarise(mean(arr_delay,na.rm = T))
+```
+
+The average arrival delay for flights from NYC to Seattle is -1.099, i.e. on an average the flights arrived approximately a minute earlier than scheduled arrival.
+
+2. Flights are often delayed. Consider the following questions exploring delay patterns.
+
+a) (4 pt) What is the mean arrival delay time? What is the median arrival delay time?
+```{r}
+mean(flights$arr_delay, na.rm = T)
+median(flights$arr_delay, na.rm = T)
+```
+
+Mean arrival delay time is 6.895377
+Median arrival delay time is -5
+
+b) (2 pt) What does a negative arrival delay mean?
+
+The negative arrival delay means the flights reached earlier than the scheduled time.
+
+c) (4 pt) Plot a histogram of arrival delay times. Does the answers you obtained in (a)consistent with the shape of the delay time distribution?
+```{r}
+hist(flights$arr_delay)
+```
+
+Since the distribution is skewed to the right, the mean tends to be higher. Hence, the mean is not a good predictor of the average arrival delay. As seen in the graph most of the flights arrived ahead of time( i.e. arrival delay is negative). Here, median is a better indicator of average arrival delay and the shape of the histogram proves that.
+
+d) (4 pt) Is there seasonality in departure delays? Try by(flights$dep_delay, flights$month, function(x) mean(x, na.rm=T)) and describe what patterns you see. Is there a best month to leave New York? A worst? Why might this be?
+
+```{r}
+by(flights$dep_delay, flights$month, function(x) mean(x, na.rm=T))
+```
+
+```{r}
+flights_delay <- flights %>%
+  group_by(month) %>%
+  summarise(mean_delay = mean(dep_delay, na.rm = T))
+
+barplot(flights_delay$mean_delay,flights_delay$month)
+```
+
+The pattern indicates that, June & July have the highest departure delays followed by December, all of them being holiday seasons. 
+
+The weather is July is hotter compared to the rest of the year, and attracts a lot of tourists, bringing a lot of air-traffic to New York. Also, sicne it is the vacation period, many leave New York at the same time. Hence, the highest departure delay is in July making it the worst possible time to visit New York.
+
+The weather in November is cold & hence might not attract a lot of tourists. Hence, departure delays hence seem to be less, making it the best time to visit New York. 
+
+3. EDA
+a) (4 pt) Plot a histogram of the total air flight time with 100 breaks. (look at the help for hist()). How many peaks do you see in this distribution? What is an explanation for this?
+```{r}
+hist(flights$air_time, breaks = 100)
+```
+
+There are 6 peaks on the histogram.
+
+This indicates that most of the flights were short distance flights & very few large distance flights.
+
+b) (4 pt) What time of day do flights most commonly depart? Why might there be two most popular times of day to depart?
+```{r}
+library(dplyr)
+
+common_hour <- flights %>%
+  group_by(hour) %>%
+  summarise(number = n()) %>%
+  arrange(desc(number))
+
+head(common_hour, n=2)
+```
+
+The flights commonly departed at 6 am and 8 am. Morning timings are the most common times for flight departure.
+
+```{r}
+hist(flights$hour)
+```
+
+There is a peak between 6 am - 8 am and between 3 pm - 5 pm in the afternoon
+
+From the graph, it is clear that the peak travel time is during the mornings and second peak is during the afternoons between 2 pm and 4 pm. 
+
+c) (4 pt) Plot a box plot of departure delays and hour of departure. What pattern do you see? What is an explanation for this?
+```{r}
+boxplot(flights$dep_delay ~ flights$hour, ylim = c(-50,50))
+```
+The variability increases over the time of the day while the median remains close to 0. Delay also increases over the day.
+
+
+4. (10 pt) Develop one research question you can address using the nycflights2013 dataset.Provide two visualizations to support your exploration of this question. Discuss what you find.
+
+Research question : Among the top 10 airports with the maximum arrival delay, does any destination specifically have more arrival delay compared to other destinations? 
+
+```{r}
+library(dplyr)
+max_delay_flights_all <- flights %>%
+  group_by(dest) %>%
+  summarise(median_arr_delay = median(arr_delay, na.rm = T) ) %>%
+  arrange(desc(median_arr_delay)) 
+ 
+max_delay_flights <- head (max_delay_flights_all, n= 10)
+max_delay_flights
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+max_delay_flights %>%
+ggplot(aes(x = 1, y = median_arr_delay))+
+  geom_col()+
+  facet_grid(.~dest)
+```
+
+After plotting the top ten destinations which have the maximum delay, it is clear that CAE airport, which is the main commercial airport for Columbia and the Midlands region of South Carolina has comparitively higher mean arrival delay.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+max_delay_flights %>%
+ggplot(aes(x = 1, y = median_arr_delay))+
+  geom_col()+
+  facet_wrap(~dest)
+```
+
+Both the facet grid & facat wrap representations show how the CAE destination has much higher arrival delay compared to other top destinations with the highest arrival delay.
