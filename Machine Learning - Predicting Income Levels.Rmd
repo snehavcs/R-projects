@@ -1,0 +1,163 @@
+---
+title: "Lab 4 - Machine Learning"
+author: "Sneha Vasanth"
+date: "February 17, 2017"
+output: html_document
+---
+#1. Load the data.  
+Make a new column in the dataset that is a 0,1 response for >50K or <=50k. Here is one way to do it:
+```{r load}
+data <- read.csv("census data.csv")
+data$income.g50 <- rep(0, nrow(data))
+data$income.g50[data$income==" >50K"] <- 1
+library(dplyr)
+glimpse(data)
+```
+
+#2.Exploring Relationships I: 
+Run a logistic regression looking at the odds ratios of level of education adjusting for age, sex, and race.
+```{r}
+mod <- glm(income.g50 ~ education + age + sex + race,data=data[,!colnames(data)%in%"income"], family="binomial")
+summary(mod)
+```
+a. What are the odds ratios for high earnings (remember the output of summary() gives log odds ratios) for having a masters degree? Or a 1st - 4th grade education? Are these statistically significant? What about multiple comparisons?
+
+```{r}
+exp(2.910088)
+```
+The odds ratio for having a masters degree is 18.358
+
+```{r}
+exp(-0.180178)
+```
+The odds ratio for having 1st - 4th grade education is 0.835
+
+
+Assuming alpha value = 0.05.
+The odds ratio for Masters degree is statistically significant since the p value is <2e-16(much lesser that 0.05).
+The odds ratio for 1st - 4th grade education is not statistically significant since the p value is 0.78371(greater than 0.05).
+
+The total count of tests = 22
+```{r}
+alpha_multiple = 0.05/21 
+alpha_multiple
+```
+
+The p value for significantly lower than the adjusted alpha value for multiple comparisons.
+Hence the odds ratio for high earnings for a Masters degree is statistically significant.
+
+b. What are the effects of age and sex? Again, are they statistically significant? Are they practically significant? Are they fair?
+
+```{r}
+exp(0.043369)
+```
+The odds ratio of age is 1.044323
+
+
+```{r}
+exp(1.291684)
+```
+The odds ratio of sex is 3.638909
+
+The p value for age and sex are <2e-16 which is much lower than adjusted alpha value. Hence the alpha value for age and sex are statistically significant. 
+
+It is not as practically significant as education, since the odds ratio is much lower.
+
+It is not fair since there is a disparity in pay based on age and sex.
+
+#3.Exploring Relationships II: 
+Plot age by the outcome and the observed predicted probabilities. Why are the predicted probabilities so variable?
+```{r}
+x <- data$age
+plot(x, data$income.g50, col="blue",xlab = "Age", ylab = "Income greater than 50K")
+fits <- fitted(mod)
+points(x, fits, pch=19, cex=0.3)
+```
+
+The predicted probabilities are different since there is a disparity in pay based on gender, race and education levels.
+
+#4.Explore some cutoffs for the probabilities: 
+Tabulate the outcome with a cutoff of 0.25, 0.5, and 0.75. Which has the lowest percent error?
+```{r}
+tab <- table(data$income.g50, fits>=0.25)
+tab
+(tab[1,2]+tab[2,1])/sum(tab)
+
+tab <- table(data$income.g50, fits>=0.5)
+tab
+(tab[1,2]+tab[2,1])/sum(tab)
+
+tab <- table(data$income.g50, fits>=0.75)
+tab
+(tab[1,2]+tab[2,1])/sum(tab)
+```
+
+Cutoff >=0.5 has the lowest percent error
+
+#5.Examine this model.
+a. Plot the ROC curve and calculate the AUC for this model.
+```{r}
+library(AUC)
+y <- factor(data$income.g50)
+rr <- roc(fits, y)
+plot(rr)
+```
+
+```{r}
+auc(rr)
+```
+
+b.How well does it fit?
+
+Ans: The ROC curve fits pretty well since the AUC value is high.
+
+#6. Let's formulate another model.
+a. Fit a model with all covariates (except "income"!). Do you see the same patterns for level of schooling?
+```{r}
+mod <- glm(income.g50 ~.,data=data[,!colnames(data)%in%c("income")], family="binomial")
+summary(mod)
+```
+
+b. Plot the age by the outcome and the observed predicted probabilities. Do the predicted probabilities have the same pattern as the other model? Why or why not?
+```{r}
+plot(data$age,data$income.g50,col="blue",xlab = "Age", ylab = "Income greater than 50K")
+fits <- fitted(mod)
+points(x, fits, pch=19, cex=0.3)
+```
+
+The predicted probabilities do not have the same pattern. There is a lot more variability in the graph since many other variables have been added that can affect the income level.
+
+c. Calculate the percent error as before for cutoffs 0.25, 0.5, 0.75. Which cutoff has the lowest percent error? Does this model perform better than the other model?
+```{r}
+tab <- table(data$income.g50, fits>=0.25)
+tab
+(tab[1,2]+tab[2,1])/sum(tab)
+
+tab <- table(data$income.g50, fits>=0.5)
+tab
+(tab[1,2]+tab[2,1])/sum(tab)
+
+tab <- table(data$income.g50, fits>=0.75)
+tab
+(tab[1,2]+tab[2,1])/sum(tab)
+```
+
+Cutoff >=0.5 has the lowest percent error. Yes, this model performs better than the previous model since percent error is lower.
+
+d. Plot the ROC and calculate the AUC. Again, does this model out perform the other model?
+```{r}
+library(AUC)
+y <- factor(data$income.g50)
+rr <- roc(fits, y)
+plot(rr)
+```
+
+
+```{r}
+auc(rr)
+```
+
+ The ROC curve fits pretty well since the AUC value is higher than the previous model. 
+
+
+
